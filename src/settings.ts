@@ -17,6 +17,11 @@ export interface RoombaPlatformConfig extends PlatformConfig {
     disableDiscovery?: boolean
     idleWatchInterval?: number
     debug?: boolean
+    /**
+     * Whether to publish each Roomba as an external accessory instead of platform accessories.
+     * External accessories appear as separate devices in HomeKit and support Matter bridging.
+     */
+    externalAccessories?: boolean
 }
 
 export interface DeviceConfig extends Robot {
@@ -41,4 +46,11 @@ export interface DeviceConfig extends Robot {
     dockingContactSensor?: boolean
     homeSwitch?: boolean
     tankContactSensor?: boolean
+    
+    /**
+     * HomeKit accessory category. 
+     * Note: iOS 18 vacuum support is Matter-only, not HomeKit HAP.
+     * Available categories: 'other', 'switch', 'sensor'
+     */
+    accessoryCategory?: 'other' | 'switch' | 'sensor'
 }

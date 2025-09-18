@@ -39,6 +39,13 @@
                 "description": "Disable automatic discovery of Roomba devices. If you have multiple Roomba devices, you can disable discovery and manually configure each device.",
                 "required": false
             },
+            "externalAccessories": {
+                "type": "boolean",
+                "title": "External Accessories",
+                "description": "Publish each Roomba as an external accessory instead of platform accessories. External accessories appear as separate devices in HomeKit and support Matter bridging.",
+                "required": false,
+                "default": false
+            },
             "devices": {
                 "type": "array",
                 "items": {
@@ -232,6 +239,33 @@
                             "title": "Idle Poll Interval (minutes)",
                             "description": "How often to poll Roomba's status when it is idle. Defaults to 15 minutes.",
                             "required": false
+                        },
+                        "accessoryCategory": {
+                            "type": "string",
+                            "title": "HomeKit Accessory Category",
+                            "description": "Note: iOS 18 vacuum support is Matter-only, not HomeKit HAP. This setting only affects the accessory icon.",
+                            "default": "other",
+                            "required": false,
+                            "oneOf": [
+                                {
+                                    "title": "Other (Generic)",
+                                    "enum": [
+                                        "other"
+                                    ]
+                                },
+                                {
+                                    "title": "Switch",
+                                    "enum": [
+                                        "switch"
+                                    ]
+                                },
+                                {
+                                    "title": "Sensor",
+                                    "enum": [
+                                        "sensor"
+                                    ]
+                                }
+                            ]
                         }
                     }
                 }

@@ -14,6 +14,8 @@ import { BaseMatterAccessory } from './BaseMatterAccessory.js'
 export class RoboticVacuumAccessory extends BaseMatterAccessory {
   private pollInterval?: NodeJS.Timeout
   private client: IRoombaClient
+  private lastErrorCode?: number
+  private lastPose?: { x: number, y: number, theta: number }
 
   constructor(
     api: API,
@@ -128,7 +130,7 @@ export class RoboticVacuumAccessory extends BaseMatterAccessory {
     }
     this.pollInterval = setInterval(async () => {
       try {
-        const state = await this.client.getRobotState(['batPct', 'bin', 'cleanMissionStatus'])
+        const state = await this.client.getRobotState(['batPct', 'bin', 'cleanMissionStatus', 'pose'])
         this.updateFromRobotState(state as RobotState)
       } catch (e) {
         this.logDebug('Polling error:', e)
@@ -144,22 +146,69 @@ export class RoboticVacuumAccessory extends BaseMatterAccessory {
         this.updateState('power', { batteryLevel: state.batPct, charging })
       }
 
+      // Error and not-ready handling
+      const cms = state.cleanMissionStatus as any
+      const errorCode: number | undefined = cms?.error
+      const notReady: Record<string, unknown> | undefined = cms?.notReady
+      if (typeof errorCode === 'number' && errorCode > 0) {
+        // Persist and publish error state
+        this.lastErrorCode = errorCode
+        void this.updateState('diagnostics', { errorCode })
+        this.updateRunMode(0)
+        this.updateOperationalState(3) // Error
+        return
+      }
+
+      if (notReady && Object.values(notReady).some(Boolean)) {
+        // Treat any notReady condition (e.g., bin full) as Paused
+        this.updateRunMode(1) // still considered a cleaning session
+        this.updateOperationalState(2) // Paused
+        return
+      }
+
+      // Bin-only signal (fallback if notReady not provided)
+      if ((state as any)?.bin?.full === true) {
+        this.updateRunMode(1)
+        this.updateOperationalState(2)
+        return
+      }
+
       // Operational state and run mode mapping
       const phase = state.cleanMissionStatus?.phase
       if (phase) {
         if (phase === 'run') {
           this.updateRunMode(1)
           this.updateOperationalState(1)
+        } else if (phase === 'pause') {
+          this.updateRunMode(1)
+          this.updateOperationalState(2) // paused
         } else if (phase === 'charge' || phase === 'recharge') {
           this.updateRunMode(0)
-          this.updateOperationalState(65) // charging
+          // If essentially full, mark docked; else charging
+          const bat = typeof state.batPct === 'number' ? state.batPct : 0
+          this.updateOperationalState(bat >= 99 ? 66 : 65)
         } else if (phase === 'hmUsrDock' || phase === 'hmMidMsn' || phase === 'hmPostMsn') {
           this.updateRunMode(0)
           this.updateOperationalState(64) // seeking
-        } else if (phase === 'stop' || phase === 'stuck' || phase === 'evac') {
+        } else if (phase === 'stuck') {
+          this.updateRunMode(0)
+          this.updateOperationalState(3) // error: stuck
+        } else if (phase === 'stop' || phase === 'evac') {
           this.updateRunMode(0)
           this.updateOperationalState(0) // stopped
         }
+      }
+
+      // Pose tracking (x, y, theta)
+      const x = (state as any)?.pose?.point?.x
+      const y = (state as any)?.pose?.point?.y
+      const theta = (state as any)?.pose?.theta
+      if (
+        typeof x === 'number' && typeof y === 'number' && typeof theta === 'number'
+        && (!this.lastPose || this.lastPose.x !== x || this.lastPose.y !== y || this.lastPose.theta !== theta)
+      ) {
+        this.lastPose = { x, y, theta }
+        this.logDebug(`Pose updated: x=${x}, y=${y}, theta=${theta}`)
       }
     } catch (e) {
       this.logDebug('Error mapping robot state:', e)

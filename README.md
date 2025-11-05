@@ -127,7 +127,7 @@ When upgrading from v2.x:
 
 **Note**: There is no backwards compatibility. This major version (v3.x) requires Homebridge 1.8.0 or newer and always uses external accessories mode.
 
-📖 For detailed information about Matter support, see [External Accessories Documentation](./EXTERNAL_ACCESSORIES.md)
+📖 For detailed information about Matter support, see the plugin documentation or Homebridge Matter support resources.
 
 ### Cleaning Mission configuration
 

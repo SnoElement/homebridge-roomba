@@ -1,29 +1,31 @@
-import type { API, Characteristic, DynamicPlatformPlugin, Logging, PlatformAccessory, Service } from 'homebridge'
+import type {
+  API,
+  DynamicPlatformPlugin,
+  Logging,
+  MatterAccessory,
+  PlatformConfig,
+  SerializedMatterAccessory,
+} from 'homebridge'
 
 import type { DeviceInfo, Robot } from './roomba.js'
 import type { DeviceConfig, RoombaPlatformConfig } from './settings.js'
 
-import { readFileSync } from 'node:fs'
-
-import RoombaAccessory from './accessory.js'
+import { RoboticVacuumAccessory } from './devices/index.js'
 import { getRoombas } from './roomba.js'
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js'
+import { getVersion } from './utils.js'
 
 export default class RoombaPlatform implements DynamicPlatformPlugin {
-  public readonly Service: typeof Service
-  public readonly Characteristic: typeof Characteristic
+  public readonly matterAccessories: Map<string, SerializedMatterAccessory | MatterAccessory> = new Map()
   private api: API
   private log!: Logging
   private config: RoombaPlatformConfig
-  private readonly accessories: Map<string, PlatformAccessory> = new Map()
   version!: string
 
-  public constructor(log: Logging, config: RoombaPlatformConfig, api: API) {
-    this.Service = api.hap.Service
-    this.Characteristic = api.hap.Characteristic
+  public constructor(log: Logging, config: PlatformConfig, api: API) {
     this.api = api
-    this.config = config
-    const debug = !!config.debug
+    this.config = config as RoombaPlatformConfig
+    const debug = !!this.config.debug
 
     try {
       this.verifyConfig()
@@ -37,10 +39,18 @@ export default class RoombaPlatform implements DynamicPlatformPlugin {
       ? log
       : Object.assign(log, { debug: (message: string, ...parameters: unknown[]) => { log.info(`DEBUG: ${message}`, ...parameters) } })
 
-    this.version = this.getVersion()
+    this.version = getVersion(this.log)
 
-    this.api.on('didFinishLaunching', () => {
-      this.discoverDevices()
+    if (!this.api.isMatterAvailable?.()) {
+      this.log.warn('Matter is not available in this version of Homebridge. Please update Homebridge to use this plugin.')
+    }
+    if (!this.api.isMatterEnabled?.()) {
+      this.log.warn('Matter is not enabled in Homebridge. Enable Matter in Homebridge settings to use this plugin.')
+      // Proceed anyway; registration will be no-op if Matter is disabled
+    }
+
+    this.api.on('didFinishLaunching', async () => {
+      await this.registerMatterAccessories()
     })
   }
 
@@ -50,12 +60,14 @@ export default class RoombaPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  public configureAccessory(accessory: PlatformAccessory): void {
-    // Only used for platform accessories, not external accessories
-    if (!this.config.externalAccessories) {
-      this.log(`Configuring accessory: ${accessory.displayName}`)
-      this.accessories.set(accessory.UUID, accessory)
-    }
+  // Not used for Matter; required by interface
+  public configureAccessory(): void {
+    // no-op
+  }
+
+  public configureMatterAccessory(accessory: SerializedMatterAccessory): void {
+    this.log.debug('Loading cached Matter accessory:', accessory.displayName)
+    this.matterAccessories.set(accessory.uuid, accessory)
   }
 
   private async discoveryMethod(): Promise<DeviceConfig[]> {
@@ -78,103 +90,29 @@ export default class RoombaPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async discoverDevices(): Promise<void> {
-    const devices: Robot[] & DeviceConfig[] = await this.discoveryMethod()
-    
-    if (this.config.externalAccessories) {
-      // External accessories mode - publish each as separate device with Matter support
-      for (const device of devices) {
-        const uuid = this.api.hap.uuid.generate(device.blid)
-        this.log.info('Publishing Matter-compatible external accessory:', device.name)
-        
-        // Map user-friendly category names to HAP Categories
-        const categoryMap = {
-          'other': this.api.hap.Categories.OTHER,
-          'switch': this.api.hap.Categories.SWITCH, 
-          'sensor': this.api.hap.Categories.SENSOR,
-        } as const
-        
-        const category = categoryMap[device.accessoryCategory || 'other']
-        const accessory = new this.api.platformAccessory(device.name, uuid, category)
-        accessory.context.device = device
-        const { serialNumber, deviceInfo } = this.serialNum(device)
-        accessory.context.serialNumber = serialNumber
-        accessory.context.deviceInfo = deviceInfo
-        accessory.context.model = device.model
-        accessory.context.firmwareRevision = device.softwareVer ?? this.version ?? '0.0.0'
-        
-        new RoombaAccessory(this, accessory, this.log, {
-          ...device,
-        }, this.config, this.api)
-        
-        // Use publishMatterAccessories for Homebridge alpha.28+ with Matter support
-        // Falls back to publishExternalAccessories for older versions
-        if (typeof (this.api as any).publishMatterAccessories === 'function') {
-          (this.api as any).publishMatterAccessories(PLUGIN_NAME, [accessory])
-        } else {
-          this.api.publishExternalAccessories(PLUGIN_NAME, [accessory])
-        }
+  private async registerMatterAccessories(): Promise<void> {
+    const accessories: MatterAccessory[] = []
+
+    const devices: (Robot & DeviceConfig)[] = await this.discoveryMethod()
+    const pollIntervalMs = Math.max(0, Math.floor((this.config.idleWatchInterval || 15) * 60_000))
+
+    for (const device of devices) {
+      const uuid = this.api.matter.uuid.generate(device.blid)
+      if (this.matterAccessories.has(uuid)) {
+        this.log.debug(`Accessory for BLID ${device.blid} already restored from cache; skipping new registration.`)
+        continue
       }
+
+      const vac = new RoboticVacuumAccessory(this.api, this.log, device, this.config, pollIntervalMs)
+      accessories.push(vac.toAccessory())
+      this.matterAccessories.set(vac.uuid, vac)
+    }
+
+    if (accessories.length > 0) {
+      await this.api.matter.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, accessories)
+      this.log.info(`✓ Registered ${accessories.length} robot vacuum device(s) (Matter)`)
     } else {
-      // Platform accessories mode - use existing cached logic
-      const configuredAccessoryUUIDs = new Set<string>()
-
-      for (const device of devices) {
-        const uuid = this.api.hap.uuid.generate(device.blid)
-        const existingAccessory = this.accessories.get(uuid)
-
-        if (existingAccessory) {
-          this.log.debug('existingAccessory device: %s', JSON.stringify(device))
-          this.log.debug('Restoring existing accessory from cache:', existingAccessory.displayName)
-          existingAccessory.context.device = device
-          const { serialNumber, deviceInfo } = this.serialNum(device)
-          existingAccessory.context.serialNumber = serialNumber
-          existingAccessory.context.deviceInfo = deviceInfo
-          existingAccessory.context.model = device.model
-          existingAccessory.context.firmwareRevision = device.softwareVer ?? this.version ?? '0.0.0'
-          this.api.updatePlatformAccessories([existingAccessory])
-          new RoombaAccessory(this, existingAccessory, this.log, {
-            ...device,
-          }, this.config, this.api)
-        } else {
-          this.log.debug('accessory device: %s', JSON.stringify(device))
-          this.log.info('Adding new accessory:', device.name)
-          
-          // Map user-friendly category names to HAP Categories
-          const categoryMap = {
-            'other': this.api.hap.Categories.OTHER,
-            'switch': this.api.hap.Categories.SWITCH, 
-            'sensor': this.api.hap.Categories.SENSOR,
-          } as const
-          
-          const category = categoryMap[device.accessoryCategory || 'other']
-          const accessory = new this.api.platformAccessory(device.name, uuid, category)
-          accessory.context.device = device
-          const { serialNumber, deviceInfo } = this.serialNum(device)
-          accessory.context.serialNumber = serialNumber
-          accessory.context.deviceInfo = deviceInfo
-          accessory.context.model = device.model
-          accessory.context.firmwareRevision = device.softwareVer ?? this.version ?? '0.0.0'
-          new RoombaAccessory(this, accessory, this.log, {
-            ...device,
-          }, this.config, this.api)
-          
-          this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory])
-        }
-        configuredAccessoryUUIDs.add(uuid)
-      }
-
-      const accessoriesToRemove: PlatformAccessory[] = []
-      for (const [uuid, accessory] of this.accessories) {
-        if (!configuredAccessoryUUIDs.has(uuid)) {
-          accessoriesToRemove.push(accessory)
-        }
-      }
-
-      if (accessoriesToRemove.length) {
-        this.log.info('Removing existing accessories from cache:', accessoriesToRemove.map(a => a.displayName).join(', '))
-        this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, accessoriesToRemove)
-      }
+      this.log.info('No Roomba devices to register.')
     }
   }
 
@@ -196,11 +134,5 @@ export default class RoombaPlatform implements DynamicPlatformPlugin {
       serialNumber = serialNum
       return { serialNumber, deviceInfo }
     }
-  }
-
-  private getVersion(): string {
-    const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8'))
-    this.log.debug(`Plugin Version: ${version}`)
-    return version
   }
 }

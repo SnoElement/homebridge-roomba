@@ -168,6 +168,11 @@
           option.text = 'No Devices';
           deviceSelect.add(option);
           deviceSelect.disabled = true;
+          // Matter note: external accessories will not appear in this UI
+          const matterNotice = document.createElement('div');
+          matterNotice.className = 'alert alert-info mt-3';
+          matterNotice.innerHTML = 'This plugin now publishes devices as external accessories with Matter. They will not appear in this list. Pair them from the Home app.';
+          document.getElementById('deviceInfo').appendChild(matterNotice);
         }
         homebridge.hideSpinner();
       };

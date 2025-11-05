@@ -39,13 +39,6 @@
                 "description": "Disable automatic discovery of Roomba devices. If you have multiple Roomba devices, you can disable discovery and manually configure each device.",
                 "required": false
             },
-            "externalAccessories": {
-                "type": "boolean",
-                "title": "External Accessories",
-                "description": "Publish each Roomba as an external accessory instead of platform accessories. External accessories appear as separate devices in HomeKit and support Matter bridging.",
-                "required": false,
-                "default": false
-            },
             "devices": {
                 "type": "array",
                 "items": {
@@ -82,37 +75,7 @@
                             "title": "Robot Vacuum IP Address",
                             "required": true
                         },
-                        "dockContactSensor": {
-                            "type": "boolean",
-                            "title": "Enable Dock Contact Sensor",
-                            "default": true,
-                            "required": false
-                        },
-                        "runningContactSensor": {
-                            "type": "boolean",
-                            "title": "Enable Running Contact Sensor",
-                            "required": false
-                        },
-                        "binContactSensor": {
-                            "type": "boolean",
-                            "title": "Enable Bin Full Contact Sensor",
-                            "required": false
-                        },
-                        "dockingContactSensor": {
-                            "type": "boolean",
-                            "title": "Returning Home Contact Sensor",
-                            "required": false
-                        },
-                        "tankContactSensor": {
-                            "type": "boolean",
-                            "title": "Braava Water Tank Contact Sensor",
-                            "required": false
-                        },
-                        "homeSwitch": {
-                            "type": "boolean",
-                            "title": "Home Switch",
-                            "required": false
-                        },
+                        
                         "cleanBehaviour": {
                             "type": "string",
                             "title": "When Roomba is turned on",
@@ -280,6 +243,24 @@
                 "type": "boolean",
                 "title": "Debug logging",
                 "required": false
+            },
+            "rest980": {
+                "type": "object",
+                "title": "REST mode (advanced)",
+                "description": "Optionally use a rest980 server instead of direct local control.",
+                "properties": {
+                    "enabled": {
+                        "type": "boolean",
+                        "title": "Enable rest980",
+                        "default": false
+                    },
+                    "baseUrl": {
+                        "type": "string",
+                        "title": "rest980 Base URL",
+                        "description": "Example: http://localhost:3000",
+                        "pattern": "^https?://.+$"
+                    }
+                }
             }
         }
     },
@@ -319,12 +300,7 @@
                         "devices[].blid",
                         "devices[].robotpwd",
                         "devices[].ipaddress",
-                        "devices[].homeSwitch",
-                        "devices[].dockContactSensor",
-                        "devices[].dockingContactSensor",
-                        "devices[].runningContactSensor",
-                        "devices[].binContactSensor",
-                        "devices[].tankContactSensor",
+                        
                         "devices[].idleWatchInterval",
                         "devices[].cleanBehaviour",
                         {
@@ -358,7 +334,18 @@
             "items": [
                 "idleWatchInterval",
                 "disableDiscovery",
-                "debug"
+                "debug",
+                {
+                    "key": "rest980",
+                    "type": "fieldset",
+                    "title": "REST mode (optional)",
+                    "expandable": true,
+                    "expanded": false,
+                    "items": [
+                        "rest980.enabled",
+                        "rest980.baseUrl"
+                    ]
+                }
             ]
         }
     ]

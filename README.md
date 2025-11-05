@@ -11,14 +11,9 @@
 
 ## Features
 
-- Roomba start on demand
-- Roomba stop and dock on demand
-- Roomba charging status
-- Roomba battery level (with low battery warning)
-- Roomba docked notification
-- Roomba running notification
-- Roomba bin full notification
-- Find Roomba (Identify Function, supported in 3rd Party HomeKit apps)
+- Start and stop cleaning
+- Optional: start a specific cleaning mission (rooms)
+- Find robot (Identify)
 
 The homebridge-roomba plugin polls Roomba for its status when requested by HomeKit, so when you first open
 the Home app you may see an old status, or no status, until Roomba has had time to respond (which may take
@@ -49,95 +44,90 @@ a few seconds).
 
 ## Configuration
 
-This plugin supports GUI-based configuration using [Homebridge UI](https://github.com/homebridge/homebridge-config-ui-x), which is the recommended
-approach for configuring your Roomba.
+This plugin supports GUI-based configuration using [Homebridge UI](https://github.com/homebridge/homebridge-config-ui-x), which is the recommended way to set up your Roomba.
 
-### Manual configuration
+### Manual configuration (platform)
 
-Here is example JSON for configuring a Roomba accessory:
-
-```json
-{
-  "accessory": "Roomba",
-  "name": "Roomba",
-  "model": "960",
-  "blid": "1234567890",
-  "robotpwd": "aPassword",
-  "ipaddress": "192.168.x.xxx",
-  "dockContactSensor": true,
-  "runningContactSensor": true,
-  "binContactSensor": true,
-  "cleanBehaviour": "rooms",
-  "mission": {
-    "ordered": 1,
-    "pmap_id": "ab1cd_eFGhiJklMN2PqRsT",
-    "regions": [
-      {
-        "region_id": "1",
-        "type": "rid",
-        "params": {
-          "noAutoPasses": true,
-          "twoPasses": true
-        }
-      }
-    ],
-    "user_pmapv_id": "220101T120101"
-  },
-  "stopBehaviour": "home"
-}
-```
-
-| Key                    | Description                                                                         | Default Value |
-| ---------------------- | ----------------------------------------------------------------------------------- | ------------- |
-| `accessory`            | Loads this plugin. Must be set to `Roomba`                                         |               |
-| `name`                 | The name of your Roomba as it should appear in Homebridge and HomeKit               |               |
-| `model`                | The model of your Roomba as you'd like it to appear in HomeKit                      |               |
-| `serialnum`            | The serial number as you'd like it to appear in HomeKit                             |               |
-| `blid`                 | The `blid` of your Roomba, obtained during setup                                    |               |
-| `robotpwd`             | The password for your Roomba, obtained during setup                                 |               |
-| `ipaddress`            | The [IP address](#troubleshooting) of your Roomba on your network                   |               |
-| `dockContactSensor`    | Add a contact sensor to HomeKit that's _closed_ when Roomba is docked               | `true`        |
-| `runningContactSensor` | Add a contact sensor to HomeKit that's _open_ when Roomba is running                | `false`       |
-| `binContactSensor`     | Add a contact sensor to HomeKit that's _open_ when Roomba's bin is full             | `false`       |
-| `dockingContactSensor` | Add a contact sensor to HomeKit that's _open_ when Roomba is docking                | `false`       |
-| `tankContactSensor`    | Add a contact sensor to HomeKit that's _open_ when Braava's water tank is empty     | `false`       |
-| `cleanBehaviour`       | Roomba can clean everywhere or go on a specific cleaning mission when started       | `everywhere`  |
-| `mission`              | Instructions passed to your Roomba for a specific cleaning mission                  |               |
-| `ordered`              | Clean rooms in order specified                                                      | `1`           |
-| `pmap_id`              | The id of your map in the iRobot app                                                |               |
-| `regions`              | One or more rooms to be cleaned during mission                                      |               |
-| `region_id`            | The region id of the room to be cleaned                                             |               |
-| `type`                 | The type of region id specified                                                     | `rid`         |
-| `params`               | Additional parameters for the room to be cleaned                                    |               |
-| `noAutoPasses`         | Specify the number of cleaning passes for the room to be cleaned                    | `false`       |
-| `twoPass`              | Specify two cleaning passes for the room                                            | `false`       |
-| `user_pmapv_id`        | The version id of your map in the iRobot app (contains Date and Time last modified) |               |
-| `stopBehaviour`        | Roomba can go home or pause when stopped                                            | `home`        |
-
-### External Accessories & Matter Support
-
-This plugin supports **External Accessories** mode, which publishes each Roomba as a separate HomeKit device instead of grouping them under a bridge. This feature provides:
-
-- **Automatic Matter Support**: Uses `publishMatterAccessories` API when available (Homebridge 2.0.0-alpha.28+)
-- **Individual Device Management**: Each Roomba appears as a separate tile in the Home app  
-- **Enhanced Reliability**: Independent device management and troubleshooting
-- **Future-Proof**: Ready for Matter protocol expansion
-
-To enable external accessories, add `"externalAccessories": true` to your platform configuration:
+Here is example JSON for configuring the platform with one device:
 
 ```json
 {
   "platform": "Roomba",
   "name": "Roomba",
-  "email": "your-email@example.com",
-  "password": "your-password", 
-  "externalAccessories": true
+  "devices": [
+    {
+      "name": "Roomba",
+      "model": "960",
+      "blid": "1234567890",
+      "robotpwd": "aPassword",
+      "ipaddress": "192.168.x.xxx",
+      "cleanBehaviour": "rooms",
+      "mission": {
+        "ordered": 1,
+        "pmap_id": "ab1cd_eFGhiJklMN2PqRsT",
+        "regions": [
+          {
+            "region_id": "1",
+            "type": "rid",
+            "params": {
+              "noAutoPasses": true,
+              "twoPass": true
+            }
+          }
+        ],
+        "user_pmapv_id": "220101T120101"
+      },
+      "stopBehaviour": "home"
+    }
+  ]
 }
 ```
 
-**Important**: Switching to external accessories requires re-pairing all devices and recreating scenes/automations.
+| Key                      | Description                                                                         | Default Value |
+| ------------------------ | ----------------------------------------------------------------------------------- | ------------- |
+| `platform`               | Loads this plugin. Must be set to `Roomba`                                          |               |
+| `name`                   | The name of the platform instance                                                   |               |
+| `devices[].name`         | The name of your Roomba as it should appear in Homebridge and HomeKit              |               |
+| `devices[].model`        | The model of your Roomba as you'd like it to appear in HomeKit                     |               |
+| `devices[].serialnum`    | The serial number as you'd like it to appear in HomeKit                            |               |
+| `devices[].blid`         | The `blid` of your Roomba, obtained during setup                                   |               |
+| `devices[].robotpwd`     | The password for your Roomba, obtained during setup                                |               |
+| `devices[].ipaddress`    | The [IP address](#troubleshooting) of your Roomba on your network                  |               |
+| `devices[].cleanBehaviour` | Clean everywhere or start a specific mission when turned on                       | `everywhere`  |
+| `devices[].mission`      | Instructions passed to your Roomba for a specific cleaning mission                 |               |
+| `devices[].mission.ordered` | Clean rooms in order specified                                                   | `1`           |
+| `devices[].mission.pmap_id` | The id of your map in the iRobot app                                            |               |
+| `devices[].mission.regions` | One or more rooms to be cleaned during mission                                   |               |
+| `devices[].mission.regions[].region_id` | The region id of the room to be cleaned                               |               |
+| `devices[].mission.regions[].type` | The type of region id specified                                           | `rid`         |
+| `devices[].mission.regions[].params` | Additional parameters for the room to be cleaned                         |               |
+| `devices[].mission.regions[].params.noAutoPasses` | Specify the number of cleaning passes for the room       | `false`       |
+| `devices[].mission.regions[].params.twoPass` | Specify two cleaning passes for the room                           | `false`       |
+| `devices[].mission.user_pmapv_id` | The version id of your map in the iRobot app (contains Date/Time)          |               |
+| `devices[].stopBehaviour` | Roomba can go home or pause when stopped                                          | `home`        |
 
-📖 For detailed information, see [External Accessories Documentation](./EXTERNAL_ACCESSORIES.md)
+## Matter Support
+
+**This plugin publishes all Roomba devices as external accessories with Matter bridging support**. This is a breaking change from v2.x - all Roombas are now published as separate Matter-compatible devices instead of platform accessories.
+
+### What This Means:
+
+- **Matter Ready**: Automatic Matter bridging when using Homebridge 2.0.0-alpha.28 or newer
+- **Individual Devices**: Each Roomba appears as a separate tile in the Home app  
+- **No Bridge Dependencies**: Devices work independently without relying on the bridge accessory
+- **iOS 18 Compatible**: Ready for iOS 18's native vacuum support (Matter-only)
+
+### Migration from v2.x:
+
+When upgrading from v2.x:
+1. All Roomba accessories will be removed from HomeKit
+2. Each Roomba will be re-added as an external accessory  
+3. You'll need to manually add each Roomba back to HomeKit
+4. Scenes and automations will need to be recreated
+
+**Note**: There is no backwards compatibility. This major version (v3.x) requires Homebridge 1.8.0 or newer and always uses external accessories mode.
+
+📖 For detailed information about Matter support, see [External Accessories Documentation](./EXTERNAL_ACCESSORIES.md)
 
 ### Cleaning Mission configuration
 

@@ -5,6 +5,9 @@
       "DOM",
       "ES2022"
     ],
+    "types": [
+      "node"
+    ],
     "rootDir": "src",
     "module": "ES2022",
     "moduleResolution": "bundler",
@@ -16,7 +19,8 @@
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
   },
   "include": [
     "src"

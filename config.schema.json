@@ -261,6 +261,27 @@
                         "pattern": "^https?://.+$"
                     }
                 }
+            },
+            "rest980Server": {
+                "type": "object",
+                "title": "Built-in REST980 Server",
+                "description": "Enable a built-in REST980-compatible HTTP server for Roomba control.",
+                "properties": {
+                    "enabled": {
+                        "type": "boolean",
+                        "title": "Enable REST980 Server",
+                        "description": "Start a built-in HTTP server that exposes REST980-compatible endpoints.",
+                        "default": false
+                    },
+                    "port": {
+                        "type": "integer",
+                        "title": "Server Port",
+                        "description": "Port number for the REST980 server.",
+                        "default": 3000,
+                        "minimum": 1024,
+                        "maximum": 65535
+                    }
+                }
             }
         }
     },
@@ -344,6 +365,17 @@
                     "items": [
                         "rest980.enabled",
                         "rest980.baseUrl"
+                    ]
+                },
+                {
+                    "key": "rest980Server",
+                    "type": "fieldset",
+                    "title": "Built-in REST980 Server",
+                    "expandable": true,
+                    "expanded": false,
+                    "items": [
+                        "rest980Server.enabled",
+                        "rest980Server.port"
                     ]
                 }
             ]

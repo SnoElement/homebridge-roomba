@@ -46,6 +46,7 @@
     "test-coverage": "npm run test -- --coverage",
     "roomba:getpassword": "get-roomba-password",
     "roomba:getlastcommand": "node ./dist/lastcommand.js",
+    "rest980:server": "npm run build && node ./dist/rest980-standalone.js",
     "docs": "typedoc",
     "docs:lint": "typedoc --emit none --treatWarningsAsErrors"
   },

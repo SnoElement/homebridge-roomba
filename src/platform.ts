@@ -11,6 +11,8 @@ import type { DeviceInfo, Robot } from './roomba.js'
 import type { DeviceConfig, RoombaPlatformConfig } from './settings.js'
 
 import { RoboticVacuumAccessory } from './devices/index.js'
+import { Rest980Server } from './rest980-server.js'
+import { createRoombaClient } from './roomba-client/factory.js'
 import { getRoombas } from './roomba.js'
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js'
 import { getVersion } from './utils.js'
@@ -20,6 +22,8 @@ export default class RoombaPlatform implements DynamicPlatformPlugin {
   private api: API
   private log!: Logging
   private config: RoombaPlatformConfig
+  private rest980Server?: Rest980Server
+  private deviceConfigs: DeviceConfig[] = []
   version!: string
 
   public constructor(log: Logging, config: PlatformConfig, api: API) {
@@ -51,7 +55,24 @@ export default class RoombaPlatform implements DynamicPlatformPlugin {
 
     this.api.on('didFinishLaunching', async () => {
       await this.registerMatterAccessories()
+      this.startRest980Server()
     })
+  }
+
+  private startRest980Server(): void {
+    if (this.config.rest980Server?.enabled) {
+      const port = this.config.rest980Server.port || 3000
+      this.rest980Server = new Rest980Server(port, this.log)
+
+      // Register all Roomba clients with the server
+      for (const device of this.deviceConfigs) {
+        const client = createRoombaClient(device, this.log, this.config)
+        this.rest980Server.registerClient(device.blid, client)
+      }
+
+      this.rest980Server.start()
+      this.log.info(`✓ REST980 server started on port ${port}`)
+    }
   }
 
   private verifyConfig() {
@@ -94,6 +115,7 @@ export default class RoombaPlatform implements DynamicPlatformPlugin {
     const accessories: MatterAccessory[] = []
 
     const devices: (Robot & DeviceConfig)[] = await this.discoveryMethod()
+    this.deviceConfigs = devices
     const pollIntervalMs = Math.max(0, Math.floor((this.config.idleWatchInterval || 15) * 60_000))
 
     for (const device of devices) {

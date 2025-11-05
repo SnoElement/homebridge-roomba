@@ -21,6 +21,10 @@ export interface RoombaPlatformConfig extends PlatformConfig {
     enabled?: boolean
     baseUrl?: string
   }
+  rest980Server?: {
+    enabled?: boolean
+    port?: number
+  }
 }
 
 export interface DeviceConfig extends Robot {

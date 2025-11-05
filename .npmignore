@@ -1,4 +1,3 @@
-/.changeset
 /.git-blame-ignore-revs
 /.github
 /.nvmrc
@@ -186,10 +185,6 @@ web_modules/
 # nvm
 
 .nvmrc
-
-# Changesets
-
-.changeset
 
 # GitHub
 

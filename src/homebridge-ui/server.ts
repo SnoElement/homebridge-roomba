@@ -1,4 +1,6 @@
+import { exec } from 'node:child_process'
 import fs from 'node:fs'
+import process from 'node:process'
 
 /* Copyright(C) 2023`-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
  *
@@ -40,6 +42,30 @@ class PluginUiServer extends HomebridgePluginUiServer {
         // Just return an empty accessory list in case of any errors
         return []
       }
+    })
+    // Expose getRoombaPassword command
+    this.onRequest('getRoombaPassword', async (ip: string) => {
+      return new Promise((resolve) => {
+        exec(`npm run roomba:getpassword ${ip}`, { cwd: process.cwd() }, (error: any, stdout: string, stderr: string) => {
+          if (error) {
+            resolve(stderr || error.message)
+          } else {
+            resolve(stdout)
+          }
+        })
+      })
+    })
+    // Expose getRoombaLastCommand command
+    this.onRequest('getRoombaLastCommand', async ({ blid, password, ip }: { blid: string, password: string, ip: string }) => {
+      return new Promise((resolve) => {
+        exec(`npm run roomba:getlastcommand ${blid} ${password} ${ip}`, { cwd: process.cwd() }, (error: any, stdout: string, stderr: string) => {
+          if (error) {
+            resolve(stderr || error.message)
+          } else {
+            resolve(stdout)
+          }
+        })
+      })
     })
     this.ready()
   }

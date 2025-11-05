@@ -48,7 +48,121 @@
     </table>
   </div>
 </div>
-<div id="pageSupport" class="mt-4" style="display: none">
+<div id="pageTools" class="mt-4" style="display: none">
+  <h4>Roomba Tools</h4>
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5 class="card-title">Get Roomba Password</h5>
+      <div class="form-group">
+        <label for="roombaIp">Roomba IP Address</label>
+        <input type="text" class="form-control" id="roombaIp" placeholder="192.168.x.x">
+      </div>
+      <button class="btn btn-primary mt-2" id="getPasswordBtn">Get Password</button>
+      <pre id="getPasswordResult" class="mt-2" style="white-space: pre-wrap;"></pre>
+      <div id="addDeviceSection" style="display:none;">
+        <hr />
+        <h6>Add as New Device</h6>
+        <form id="addDeviceForm">
+          <div class="form-group">
+            <label for="deviceName">Name</label>
+            <input type="text" class="form-control" id="deviceName" placeholder="Roomba">
+          </div>
+          <div class="form-group">
+            <label for="deviceModel">Model</label>
+            <input type="text" class="form-control" id="deviceModel" placeholder="960">
+          </div>
+          <div class="form-group">
+            <label for="deviceSerial">Serial Number (optional)</label>
+            <input type="text" class="form-control" id="deviceSerial" placeholder="Serial Number">
+          </div>
+          <div class="form-group">
+            <label for="deviceBlid">BLID</label>
+            <input type="text" class="form-control" id="deviceBlid" placeholder="BLID">
+          </div>
+          <div class="form-group">
+            <label for="devicePwd">Password</label>
+            <input type="text" class="form-control" id="devicePwd" placeholder="Password">
+          </div>
+          <div class="form-group">
+            <label for="deviceIp">IP Address</label>
+            <input type="text" class="form-control" id="deviceIp" placeholder="192.168.x.x">
+          </div>
+          <button class="btn btn-success mt-2" id="addDeviceBtn" type="submit">Add Device to Config</button>
+        </form>
+        <div id="addDeviceMsg" class="mt-2"></div>
+      </div>
+    </div>
+  </div>
+      // Add Device logic after Get Password
+      const getPasswordResult = document.getElementById('getPasswordResult');
+      const addDeviceSection = document.getElementById('addDeviceSection');
+      const addDeviceForm = document.getElementById('addDeviceForm');
+      const addDeviceMsg = document.getElementById('addDeviceMsg');
+      if (getPasswordBtn) {
+        getPasswordBtn.addEventListener('click', async () => {
+          const ip = document.getElementById('roombaIp').value;
+          getPasswordResult.textContent = 'Running...';
+          addDeviceSection.style.display = 'none';
+          try {
+            const result = await homebridge.request('/getRoombaPassword', ip);
+            getPasswordResult.textContent = result;
+            // Try to parse BLID and password from result
+            const blidMatch = result.match(/blid\s*[:=]\s*([a-zA-Z0-9]+)/i);
+            const pwdMatch = result.match(/password\s*[:=]\s*([a-zA-Z0-9]+)/i);
+            if (blidMatch && pwdMatch) {
+              document.getElementById('deviceBlid').value = blidMatch[1];
+              document.getElementById('devicePwd').value = pwdMatch[1];
+              document.getElementById('deviceIp').value = ip;
+              addDeviceSection.style.display = 'block';
+            }
+          } catch (err) {
+            getPasswordResult.textContent = err.message;
+            addDeviceSection.style.display = 'none';
+          }
+        });
+      }
+      if (addDeviceForm) {
+        addDeviceForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          addDeviceMsg.textContent = '';
+          const name = document.getElementById('deviceName').value || 'Roomba';
+          const model = document.getElementById('deviceModel').value || '960';
+          const serialnum = document.getElementById('deviceSerial').value;
+          const blid = document.getElementById('deviceBlid').value;
+          const robotpwd = document.getElementById('devicePwd').value;
+          const ipaddress = document.getElementById('deviceIp').value;
+          try {
+            const config = await homebridge.getPluginConfig();
+            if (!Array.isArray(config[0].devices)) config[0].devices = [];
+            config[0].devices.push({ name, model, serialnum, blid, robotpwd, ipaddress });
+            await homebridge.updatePluginConfig(config);
+            await homebridge.savePluginConfig();
+            addDeviceMsg.textContent = 'Device added to config!';
+          } catch (err) {
+            addDeviceMsg.textContent = 'Failed to add device: ' + err.message;
+          }
+        });
+      }
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5 class="card-title">Get Last Cleaning Command</h5>
+      <div class="form-group">
+        <label for="roombaBlid">BLID</label>
+        <input type="text" class="form-control" id="roombaBlid" placeholder="Roomba BLID">
+      </div>
+      <div class="form-group">
+        <label for="roombaPwd">Password</label>
+        <input type="text" class="form-control" id="roombaPwd" placeholder="Roomba Password">
+      </div>
+      <div class="form-group">
+        <label for="roombaIp2">Roomba IP Address</label>
+        <input type="text" class="form-control" id="roombaIp2" placeholder="192.168.x.x">
+      </div>
+      <button class="btn btn-primary mt-2" id="getLastCommandBtn">Get Last Command</button>
+      <pre id="getLastCommandResult" class="mt-2" style="white-space: pre-wrap;"></pre>
+    </div>
+  </div>
+</div>
   <p class="text-center lead">Thank you for using <strong>homebridge-roomba</strong></p>
   <p class="text-center">The links below will take you to our GitHub wiki</p>
   <h5>Setup</h5>
@@ -213,7 +327,63 @@
         await homebridge.savePluginConfig();
         homebridge.hideSpinner();
       };
-      menuHome.addEventListener('click', () => showSupport());
+  // Add menu for tools
+  const menuTools = document.createElement('button');
+  menuTools.type = 'button';
+  menuTools.className = 'btn btn-primary';
+  menuTools.id = 'menuTools';
+  menuTools.textContent = 'Tools';
+  document.getElementById('menuWrapper').appendChild(menuTools);
+
+  menuHome.addEventListener('click', () => showSupport());
+  menuTools.addEventListener('click', () => showTools());
+      showTools = () => {
+        homebridge.showSpinner();
+        homebridge.hideSchemaForm();
+        document.getElementById('menuHome').classList.remove('btn-elegant');
+        document.getElementById('menuHome').classList.add('btn-primary');
+        document.getElementById('menuDevices').classList.remove('btn-elegant');
+        document.getElementById('menuDevices').classList.add('btn-primary');
+        document.getElementById('menuSettings').classList.remove('btn-elegant');
+        document.getElementById('menuSettings').classList.add('btn-primary');
+        menuTools.classList.add('btn-elegant');
+        menuTools.classList.remove('btn-primary');
+        document.getElementById('pageSupport').style.display = 'none';
+        document.getElementById('pageDevices').style.display = 'none';
+        document.getElementById('pageTools').style.display = 'block';
+        homebridge.hideSpinner();
+      };
+      // Tool actions
+      document.addEventListener('DOMContentLoaded', function () {
+        const getPasswordBtn = document.getElementById('getPasswordBtn');
+        if (getPasswordBtn) {
+          getPasswordBtn.addEventListener('click', async () => {
+            const ip = document.getElementById('roombaIp').value;
+            document.getElementById('getPasswordResult').textContent = 'Running...';
+            try {
+              const result = await homebridge.request('/getRoombaPassword', ip);
+              document.getElementById('getPasswordResult').textContent = result;
+            } catch (err) {
+              document.getElementById('getPasswordResult').textContent = err.message;
+            }
+          });
+        }
+        const getLastCommandBtn = document.getElementById('getLastCommandBtn');
+        if (getLastCommandBtn) {
+          getLastCommandBtn.addEventListener('click', async () => {
+            const blid = document.getElementById('roombaBlid').value;
+            const password = document.getElementById('roombaPwd').value;
+            const ip = document.getElementById('roombaIp2').value;
+            document.getElementById('getLastCommandResult').textContent = 'Running...';
+            try {
+              const result = await homebridge.request('/getRoombaLastCommand', { blid, password, ip });
+              document.getElementById('getLastCommandResult').textContent = result;
+            } catch (err) {
+              document.getElementById('getLastCommandResult').textContent = err.message;
+            }
+          });
+        }
+      });
       menuDevices.addEventListener('click', () => showDevices());
       menuSettings.addEventListener('click', () => showSettings());
       disabledEnable.addEventListener('click', () => enablePlugin());

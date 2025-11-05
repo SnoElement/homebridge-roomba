@@ -176,6 +176,7 @@ Click on any of the items below to expand the corresponding answer.
 
 ## Building
 
+
 The homebridge-roomba plugin uses [TypeScript](https://www.typescriptlang.org) and
 [`nvm`](https://github.com/nvm-sh/nvm).
 
@@ -230,32 +231,6 @@ Note: the destination path above is an example of what the path to `node_modules
 If you see "Permission denied" errors from `scp` you will need to adjust the permissions on the files in that folder
 on your Homebridge machine.
 
-## Contributing
-
-The homebridge-roomba plugin uses [Changesets](https://github.com/atlassian/changesets) to maintain the [CHANGELOG.md](./CHANGELOG.md) and to bump the package's version number according to [semver](https://semver.org).
-
-If you are preparing a PR, please consider using Changesets to include a summary of your change for the [CHANGELOG.md](./CHANGELOG.md), following the example of existing changelog entries (but feel free to provide more detail).
-
-To create a new changeset:
-
-```shell
-npm exec changeset
-```
-
-That will prompt you to indicate whether your change is a patch (a bug fix) or a minor or major change. If you are adding a feature it is a minor change, not a patch.
-
-Changesets will create a new file in the `.changeset` directory that you can commit as part of your PR.
-
-### `.git-blame-ignore-revs`
-
-Some revisions in the git history are spurious in a git blame, such as linting the code base.
-These revisions are listed in `.git-blame-ignore-revs`. You can configure your local git repository
-to use this file to skip these revisions in a blame:
-
-```shell
-git config blame.ignoreRevsFile .git-blame-ignore-revs
-```
-
 ### `config.schema.json`
 
 Useful references for the `config.schema.json`:
@@ -263,20 +238,6 @@ Useful references for the `config.schema.json`:
 - https://github.com/oznu/homebridge-config-ui-x/wiki/Developers:-Plugin-Settings-GUI
 - https://github.com/hamzahamidi/ajsf
 - https://github.com/json-schema-form/angular-schema-form/blob/master/docs/index.md
-
-### Releasing
-
-The maintainer will run these steps to update the plugin version and publish to [npmjs.com](https://npmjs.com/package/homebridge-roomba):
-
-```shell
-npm exec changeset version
-```
-
-Review the additions to [`CHANGELOG.md`](./CHANGELOG.md) and `package.json`, commit with the comment "vX.X", and then publish:
-
-```shell
-npm exec changeset publish
-```
 
 ## Credits
 

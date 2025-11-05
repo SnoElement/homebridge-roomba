@@ -9,6 +9,7 @@
   </div>
 </div>
 <div id="menuWrapper" class="btn-group w-100 mb-0" role="group" aria-label="UI Menu" style="display: none">
+<div id="pageSupport" style="display:none"></div>
   <button type="button" class="btn btn-primary" id="menuSettings">Settings</button>
   <button type="button" class="btn btn-primary" id="menuDevices">Devices</button>
   <button type="button" class="btn btn-primary mr-0" id="menuHome">Support</button>
@@ -220,32 +221,54 @@
   </ul>
 </div>
 <script>
-  (async () => {
+  document.addEventListener('DOMContentLoaded', async function () {
     try {
       const currentConfig = await homebridge.getPluginConfig();
-      showIntro = () => {
+
+      // Menu logic
+      const menuWrapper = document.getElementById('menuWrapper');
+      const menuSettings = document.getElementById('menuSettings');
+      const menuDevices = document.getElementById('menuDevices');
+      const menuHome = document.getElementById('menuHome');
+      const disabledEnable = document.getElementById('disabledEnable');
+      const pageSupport = document.getElementById('pageSupport');
+      const pageDevices = document.getElementById('pageDevices');
+      const pageTools = document.getElementById('pageTools');
+      const pageIntro = document.getElementById('pageIntro');
+
+      // Add Tools menu button
+      const menuTools = document.createElement('button');
+      menuTools.type = 'button';
+      menuTools.className = 'btn btn-primary';
+      menuTools.id = 'menuTools';
+      menuTools.textContent = 'Tools';
+      menuWrapper.appendChild(menuTools);
+
+      // Show/hide page helpers
+      function showIntro() {
         const introLink = document.getElementById('introLink');
         introLink.addEventListener('click', () => {
           homebridge.showSpinner();
-          document.getElementById('pageIntro').style.display = 'none';
-          document.getElementById('menuWrapper').style.display = 'inline-flex';
+          pageIntro.style.display = 'none';
+          menuWrapper.style.display = 'inline-flex';
           showSettings();
           homebridge.hideSpinner();
         });
-        document.getElementById('menuWrapper').style.display = 'none';
-        document.getElementById('pageIntro').style.display = 'block';
-      };
-      showDevices = async () => {
+        menuWrapper.style.display = 'none';
+        pageIntro.style.display = 'block';
+      }
+      async function showDevices() {
         homebridge.showSpinner();
         homebridge.hideSchemaForm();
-        document.getElementById('menuHome').classList.remove('btn-elegant');
-        document.getElementById('menuHome').classList.add('btn-primary');
-        document.getElementById('menuDevices').classList.add('btn-elegant');
-        document.getElementById('menuDevices').classList.remove('btn-primary');
-        document.getElementById('menuSettings').classList.remove('btn-elegant');
-        document.getElementById('menuSettings').classList.add('btn-primary');
-        document.getElementById('pageSupport').style.display = 'none';
-        document.getElementById('pageDevices').style.display = 'block';
+        menuHome.classList.remove('btn-elegant');
+        menuHome.classList.add('btn-primary');
+        menuDevices.classList.add('btn-elegant');
+        menuDevices.classList.remove('btn-primary');
+        menuSettings.classList.remove('btn-elegant');
+        menuSettings.classList.add('btn-primary');
+        pageSupport.style.display = 'none';
+        pageDevices.style.display = 'block';
+        pageTools.style.display = 'none';
         const cachedAccessories =
           typeof homebridge.getCachedAccessories === 'function'
             ? await homebridge.getCachedAccessories()
@@ -263,7 +286,7 @@
           option.value = a.UUID;
           deviceSelect.add(option);
         });
-        showDeviceInfo = async (UUID) => {
+        async function showDeviceInfo(UUID) {
           homebridge.showSpinner();
           const thisAcc = cachedAccessories.find((x) => x.UUID === UUID);
           const context = thisAcc.context;
@@ -273,7 +296,7 @@
           document.getElementById('firmwareRevision').innerHTML = context.firmwareRevision || 'N/A';
           document.getElementById('deviceTable').style.display = 'inline-table';
           homebridge.hideSpinner();
-        };
+        }
         deviceSelect.addEventListener('change', (event) => showDeviceInfo(event.target.value));
         if (cachedAccessories.length > 0) {
           showDeviceInfo(cachedAccessories[0].UUID);
@@ -289,106 +312,140 @@
           document.getElementById('deviceInfo').appendChild(matterNotice);
         }
         homebridge.hideSpinner();
-      };
-      showSupport = () => {
+      }
+      function showSupport() {
         homebridge.showSpinner();
         homebridge.hideSchemaForm();
-        document.getElementById('menuHome').classList.add('btn-elegant');
-        document.getElementById('menuHome').classList.remove('btn-primary');
-        document.getElementById('menuDevices').classList.remove('btn-elegant');
-        document.getElementById('menuDevices').classList.add('btn-primary');
-        document.getElementById('menuSettings').classList.remove('btn-elegant');
-        document.getElementById('menuSettings').classList.add('btn-primary');
-        document.getElementById('pageSupport').style.display = 'block';
-        document.getElementById('pageDevices').style.display = 'none';
+        menuHome.classList.add('btn-elegant');
+        menuHome.classList.remove('btn-primary');
+        menuDevices.classList.remove('btn-elegant');
+        menuDevices.classList.add('btn-primary');
+        menuSettings.classList.remove('btn-elegant');
+        menuSettings.classList.add('btn-primary');
+        pageSupport.style.display = 'block';
+        pageDevices.style.display = 'none';
+        pageTools.style.display = 'none';
         homebridge.hideSpinner();
-      };
-      showSettings = () => {
+      }
+      function showSettings() {
         homebridge.showSpinner();
-        document.getElementById('menuHome').classList.remove('btn-elegant');
-        document.getElementById('menuHome').classList.add('btn-primary');
-        document.getElementById('menuDevices').classList.remove('btn-elegant');
-        document.getElementById('menuDevices').classList.add('btn-primary');
-        document.getElementById('menuSettings').classList.add('btn-elegant');
-        document.getElementById('menuSettings').classList.remove('btn-primary');
-        document.getElementById('pageSupport').style.display = 'none';
-        document.getElementById('pageDevices').style.display = 'none';
+        menuHome.classList.remove('btn-elegant');
+        menuHome.classList.add('btn-primary');
+        menuDevices.classList.remove('btn-elegant');
+        menuDevices.classList.add('btn-primary');
+        menuSettings.classList.add('btn-elegant');
+        menuSettings.classList.remove('btn-primary');
+        pageSupport.style.display = 'none';
+        pageDevices.style.display = 'none';
+        pageTools.style.display = 'none';
         homebridge.showSchemaForm();
         homebridge.hideSpinner();
-      };
-      showDisabledBanner = () => {
+      }
+      function showDisabledBanner() {
         document.getElementById('disabledBanner').style.display = 'block';
-      };
-      enablePlugin = async () => {
+      }
+      async function enablePlugin() {
         homebridge.showSpinner();
         document.getElementById('disabledBanner').style.display = 'none';
         currentConfig[0].disablePlugin = false;
         await homebridge.updatePluginConfig(currentConfig);
         await homebridge.savePluginConfig();
         homebridge.hideSpinner();
-      };
-  // Add menu for tools
-  const menuTools = document.createElement('button');
-  menuTools.type = 'button';
-  menuTools.className = 'btn btn-primary';
-  menuTools.id = 'menuTools';
-  menuTools.textContent = 'Tools';
-  document.getElementById('menuWrapper').appendChild(menuTools);
-
-  menuHome.addEventListener('click', () => showSupport());
-  menuTools.addEventListener('click', () => showTools());
-      showTools = () => {
+      }
+      function showTools() {
         homebridge.showSpinner();
         homebridge.hideSchemaForm();
-        document.getElementById('menuHome').classList.remove('btn-elegant');
-        document.getElementById('menuHome').classList.add('btn-primary');
-        document.getElementById('menuDevices').classList.remove('btn-elegant');
-        document.getElementById('menuDevices').classList.add('btn-primary');
-        document.getElementById('menuSettings').classList.remove('btn-elegant');
-        document.getElementById('menuSettings').classList.add('btn-primary');
+        menuHome.classList.remove('btn-elegant');
+        menuHome.classList.add('btn-primary');
+        menuDevices.classList.remove('btn-elegant');
+        menuDevices.classList.add('btn-primary');
+        menuSettings.classList.remove('btn-elegant');
+        menuSettings.classList.add('btn-primary');
         menuTools.classList.add('btn-elegant');
         menuTools.classList.remove('btn-primary');
-        document.getElementById('pageSupport').style.display = 'none';
-        document.getElementById('pageDevices').style.display = 'none';
-        document.getElementById('pageTools').style.display = 'block';
+        pageSupport.style.display = 'none';
+        pageDevices.style.display = 'none';
+        pageTools.style.display = 'block';
         homebridge.hideSpinner();
-      };
-      // Tool actions
-      document.addEventListener('DOMContentLoaded', function () {
-        const getPasswordBtn = document.getElementById('getPasswordBtn');
-        if (getPasswordBtn) {
-          getPasswordBtn.addEventListener('click', async () => {
-            const ip = document.getElementById('roombaIp').value;
-            document.getElementById('getPasswordResult').textContent = 'Running...';
-            try {
-              const result = await homebridge.request('/getRoombaPassword', ip);
-              document.getElementById('getPasswordResult').textContent = result;
-            } catch (err) {
-              document.getElementById('getPasswordResult').textContent = err.message;
+      }
+
+      // Menu event listeners
+      menuHome.addEventListener('click', showSupport);
+      menuTools.addEventListener('click', showTools);
+      menuDevices.addEventListener('click', showDevices);
+      menuSettings.addEventListener('click', showSettings);
+      disabledEnable.addEventListener('click', enablePlugin);
+
+      // Tools page logic (Get Password, Add Device, Get Last Command)
+      const getPasswordBtn = document.getElementById('getPasswordBtn');
+      const getPasswordResult = document.getElementById('getPasswordResult');
+      const addDeviceSection = document.getElementById('addDeviceSection');
+      const addDeviceForm = document.getElementById('addDeviceForm');
+      const addDeviceMsg = document.getElementById('addDeviceMsg');
+      if (getPasswordBtn) {
+        getPasswordBtn.addEventListener('click', async () => {
+          const ip = document.getElementById('roombaIp').value;
+          getPasswordResult.textContent = 'Running...';
+          addDeviceSection.style.display = 'none';
+          try {
+            const result = await homebridge.request('/getRoombaPassword', ip);
+            getPasswordResult.textContent = result;
+            // Try to parse BLID and password from result
+            const blidMatch = result.match(/blid\s*[:=]\s*([a-zA-Z0-9]+)/i);
+            const pwdMatch = result.match(/password\s*[:=]\s*([a-zA-Z0-9]+)/i);
+            if (blidMatch && pwdMatch) {
+              document.getElementById('deviceBlid').value = blidMatch[1];
+              document.getElementById('devicePwd').value = pwdMatch[1];
+              document.getElementById('deviceIp').value = ip;
+              addDeviceSection.style.display = 'block';
             }
-          });
-        }
-        const getLastCommandBtn = document.getElementById('getLastCommandBtn');
-        if (getLastCommandBtn) {
-          getLastCommandBtn.addEventListener('click', async () => {
-            const blid = document.getElementById('roombaBlid').value;
-            const password = document.getElementById('roombaPwd').value;
-            const ip = document.getElementById('roombaIp2').value;
-            document.getElementById('getLastCommandResult').textContent = 'Running...';
-            try {
-              const result = await homebridge.request('/getRoombaLastCommand', { blid, password, ip });
-              document.getElementById('getLastCommandResult').textContent = result;
-            } catch (err) {
-              document.getElementById('getLastCommandResult').textContent = err.message;
-            }
-          });
-        }
-      });
-      menuDevices.addEventListener('click', () => showDevices());
-      menuSettings.addEventListener('click', () => showSettings());
-      disabledEnable.addEventListener('click', () => enablePlugin());
+          } catch (err) {
+            getPasswordResult.textContent = err.message;
+            addDeviceSection.style.display = 'none';
+          }
+        });
+      }
+      if (addDeviceForm) {
+        addDeviceForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          addDeviceMsg.textContent = '';
+          const name = document.getElementById('deviceName').value || 'Roomba';
+          const model = document.getElementById('deviceModel').value || '960';
+          const serialnum = document.getElementById('deviceSerial').value;
+          const blid = document.getElementById('deviceBlid').value;
+          const robotpwd = document.getElementById('devicePwd').value;
+          const ipaddress = document.getElementById('deviceIp').value;
+          try {
+            const config = await homebridge.getPluginConfig();
+            if (!Array.isArray(config[0].devices)) config[0].devices = [];
+            config[0].devices.push({ name, model, serialnum, blid, robotpwd, ipaddress });
+            await homebridge.updatePluginConfig(config);
+            await homebridge.savePluginConfig();
+            addDeviceMsg.textContent = 'Device added to config!';
+          } catch (err) {
+            addDeviceMsg.textContent = 'Failed to add device: ' + err.message;
+          }
+        });
+      }
+      const getLastCommandBtn = document.getElementById('getLastCommandBtn');
+      if (getLastCommandBtn) {
+        getLastCommandBtn.addEventListener('click', async () => {
+          const blid = document.getElementById('roombaBlid').value;
+          const password = document.getElementById('roombaPwd').value;
+          const ip = document.getElementById('roombaIp2').value;
+          document.getElementById('getLastCommandResult').textContent = 'Running...';
+          try {
+            const result = await homebridge.request('/getRoombaLastCommand', { blid, password, ip });
+            document.getElementById('getLastCommandResult').textContent = result;
+          } catch (err) {
+            document.getElementById('getLastCommandResult').textContent = err.message;
+          }
+        });
+      }
+
+      // Initial page load logic
       if (currentConfig.length) {
-        document.getElementById('menuWrapper').style.display = 'inline-flex';
+        menuWrapper.style.display = 'inline-flex';
         showSettings();
         if (currentConfig[0].disablePlugin) {
           showDisabledBanner();
@@ -403,5 +460,5 @@
     } finally {
       homebridge.hideSpinner();
     }
-  })();
+  });
 </script>

@@ -49,22 +49,7 @@ git push origin beta-2.2.0
 2. ✅ Identify or create appropriate beta branch
 3. ✅ Target PR to beta branch (not `latest`)
 4. ✅ Follow normal development workflow below
-5. ✅ Use changesets to document your changes (see Publishing Workflow section)
 
-### Integration with Changesets
-This project uses [Changesets](https://github.com/changesets/changesets) for version management. When making changes:
-
-1. **Create a changeset** describing your change:
-   ```bash
-   npm exec changeset
-   ```
-2. **Select the change type** that matches your issue label:
-   - Patch → patch (bug fixes)
-   - Minor → minor (new features) 
-   - Major → major (breaking changes)
-3. **Commit the changeset file** as part of your PR
-
-The changeset type should align with the issue label that was set before assignment.
 
 ## Working Effectively
 
@@ -97,16 +82,6 @@ Key build commands with validated timings:
 
 ### Publishing Workflow
 
-This project uses Changesets for version management and release automation:
-
-- `npm exec changeset` - Create a changeset describing your changes (do this for each PR)
-- `npm exec changeset version` - Update package.json and CHANGELOG.md (maintainer only)
-- `npm exec changeset publish` - Publish to npm (maintainer only)
-- `npm run prepublishOnly` - Complete CI workflow: lint + build + docs. Takes ~15 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
-
-**For Contributors**: Always create a changeset when making changes. The type (patch/minor/major) should match the issue label.
-
-**Beta Release Process**: Beta versions are automatically published from beta branches. When a beta branch is ready, it gets merged to `latest` for stable release.
 
 ## Validation
 

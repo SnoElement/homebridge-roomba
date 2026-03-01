@@ -321,8 +321,6 @@
                         "devices[].blid",
                         "devices[].robotpwd",
                         "devices[].ipaddress",
-                        
-                        "devices[].idleWatchInterval",
                         "devices[].cleanBehaviour",
                         {
                             "key": "devices[].mission",
@@ -342,6 +340,7 @@
                             ]
                         },
                         "devices[].stopBehaviour",
+                        "devices[].accessoryCategory",
                         "devices[].idleWatchInterval"
                     ]
                 }

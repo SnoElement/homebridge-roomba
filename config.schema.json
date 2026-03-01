@@ -75,6 +75,7 @@
                             "title": "Robot Vacuum IP Address",
                             "required": true
                         },
+                        
                         "cleanBehaviour": {
                             "type": "string",
                             "title": "When Roomba is turned on",
@@ -98,32 +99,39 @@
                         "mission": {
                             "type": "object",
                             "title": "Mission Info",
-                            "required": false,
                             "properties": {
                                 "ordered": {
                                     "type": "number",
                                     "title": "Clean rooms in order",
                                     "default": 1,
-                                    "enum": [
-                                        0,
-                                        1
+                                    "oneOf": [
+                                        {
+                                            "title": "Yes",
+                                            "enum": [
+                                                1
+                                            ]
+                                        },
+                                        {
+                                            "title": "No",
+                                            "enum": [
+                                                0
+                                            ]
+                                        }
                                     ],
                                     "condition": {
-                                        "functionBody": "return (model.cleanBehaviour === 'rooms');"
+                                        "functionBody": "return (model.devices && model.devices[arrayIndices].cleanBehaviour === 'rooms');"
                                     }
                                 },
                                 "pmap_id": {
                                     "type": "string",
                                     "title": "Pmap Id",
-                                    "required": false,
                                     "condition": {
-                                        "functionBody": "return (model.cleanBehaviour === 'rooms');"
+                                        "functionBody": "return (model.devices && model.devices[arrayIndices].cleanBehaviour === 'rooms');"
                                     }
                                 },
                                 "regions": {
                                     "type": "array",
                                     "title": "Rooms to be cleaned",
-                                    "required": false,
                                     "items": {
                                         "type": "object",
                                         "properties": {
@@ -138,7 +146,6 @@
                                             },
                                             "params": {
                                                 "type": "object",
-                                                "required": false,
                                                 "properties": {
                                                     "noAutoPasses": {
                                                         "type": "boolean",
@@ -157,15 +164,15 @@
                                         }
                                     },
                                     "condition": {
-                                        "functionBody": "return (model.cleanBehaviour === 'rooms');"
+                                        "functionBody": "return (model.devices && model.devices[arrayIndices].cleanBehaviour === 'rooms');"
                                     }
                                 },
                                 "user_pmapv_id": {
                                     "type": "string",
                                     "title": "User Pmapv Id",
-                                    "required": false,
+                                    "required": true,
                                     "condition": {
-                                        "functionBody": "return (model.cleanBehaviour === 'rooms');"
+                                        "functionBody": "return (model.devices && model.devices[arrayIndices].cleanBehaviour === 'rooms');"
                                     }
                                 }
                             }
@@ -314,6 +321,7 @@
                         "devices[].blid",
                         "devices[].robotpwd",
                         "devices[].ipaddress",
+                        
                         "devices[].idleWatchInterval",
                         "devices[].cleanBehaviour",
                         {
@@ -334,7 +342,7 @@
                             ]
                         },
                         "devices[].stopBehaviour",
-                        "devices[].accessoryCategory"
+                        "devices[].idleWatchInterval"
                     ]
                 }
             ]

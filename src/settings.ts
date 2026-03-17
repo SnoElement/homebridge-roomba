@@ -13,6 +13,8 @@ export const PLATFORM_NAME = 'Roomba'
 export const PLUGIN_NAME = '@homebridge-plugins/homebridge-roomba'
 
 export interface RoombaPlatformConfig extends PlatformConfig {
+    email?: string
+    password?: string
     devices: DeviceConfig[]
     disableDiscovery?: boolean
     idleWatchInterval?: number
@@ -29,6 +31,10 @@ export interface DeviceConfig extends Robot {
     cleanBehaviour: 'everywhere' | 'rooms'
     mission?: RobotMission
     stopBehaviour: 'home' | 'pause'
+    /**
+     * Override the HomeKit accessory category for this device.
+     */
+    accessoryCategory?: number
     /**
      * Idle Poll Interval (minutes).
      * How often to poll Roomba's status when it is idle.

@@ -13,6 +13,8 @@ export const PLATFORM_NAME = 'Roomba'
 export const PLUGIN_NAME = '@homebridge-plugins/homebridge-roomba'
 
 export interface RoombaPlatformConfig extends PlatformConfig {
+    email?: string
+    password?: string
     devices: DeviceConfig[]
     disableDiscovery?: boolean
     idleWatchInterval?: number

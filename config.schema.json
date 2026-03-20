@@ -291,7 +291,6 @@
                         "devices[].runningContactSensor",
                         "devices[].binContactSensor",
                         "devices[].tankContactSensor",
-                        "devices[].idleWatchInterval",
                         "devices[].cleanBehaviour",
                         {
                             "key": "devices[].mission",

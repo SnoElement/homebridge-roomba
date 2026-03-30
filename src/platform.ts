@@ -54,8 +54,19 @@ export default class RoombaPlatform implements DynamicPlatformPlugin {
     }
 
     this.api.on('didFinishLaunching', async () => {
-      await this.registerMatterAccessories()
-      this.startRest980Server()
+      try {
+        // Pre-load Matter API before accessing it (method may not be in types but exists at runtime)
+        const apiWithMatter = this.api as any
+        if (apiWithMatter.loadMatterAPI) {
+          await apiWithMatter.loadMatterAPI()
+        }
+        await this.registerMatterAccessories()
+        this.startRest980Server()
+      } catch (e: any) {
+        this.log.error('Error during platform initialization:', e.message ?? e)
+        this.log.error('Stack trace:', e.stack)
+        throw e
+      }
     })
   }
 
@@ -92,49 +103,95 @@ export default class RoombaPlatform implements DynamicPlatformPlugin {
   }
 
   private async discoveryMethod(): Promise<DeviceConfig[]> {
-    if (this.config.email && this.config.password) {
-      const robots: Robot[] = await getRoombas(this.config.email, this.config.password, this.log, this.config)
-      return robots.map((robot) => {
-        const deviceConfig = this.config.devices?.find(device => device.blid === robot.blid) || {}
-        return {
-          ...robot,
-          ...deviceConfig,
-        } as any
-      })
-    } else if (this.config.devices) {
-      return this.config.devices.map(device => ({
-        ...device,
-      }))
-    } else {
-      this.log.error('No configuration provided for devices.')
+    try {
+      if (this.config.email && this.config.password) {
+        const robots: Robot[] = await getRoombas(this.config.email, this.config.password, this.log, this.config)
+        return robots.map((robot) => {
+          const deviceConfig = this.config.devices?.find(device => device.blid === robot.blid) || {}
+          return {
+            ...robot,
+            ...deviceConfig,
+          } as any
+        })
+      } else if (this.config.devices) {
+        return this.config.devices.map(device => ({
+          ...device,
+        }))
+      } else {
+        this.log.error('No configuration provided for devices.')
+        return []
+      }
+    } catch (e: any) {
+      this.log.error('Error in discoveryMethod:', e.message ?? e)
+      this.log.error('Stack trace:', e.stack)
       return []
     }
   }
 
   private async registerMatterAccessories(): Promise<void> {
-    const accessories: MatterAccessory[] = []
+    try {
+      const accessoriesToRegister: MatterAccessory[] = []
+      const accessoriesToUpdate: MatterAccessory[] = []
+      const discoveredUuids: Set<string> = new Set()
 
-    const devices: (Robot & DeviceConfig)[] = await this.discoveryMethod()
-    this.deviceConfigs = devices
-    const pollIntervalMs = Math.max(0, Math.floor((this.config.idleWatchInterval || 15) * 60_000))
+      const devices: (Robot & DeviceConfig)[] = await this.discoveryMethod()
+      this.deviceConfigs = devices
+      const pollIntervalMs = Math.max(0, Math.floor((this.config.idleWatchInterval || 15) * 60_000))
 
-    for (const device of devices) {
-      const uuid = this.api.matter.uuid.generate(device.blid)
-      if (this.matterAccessories.has(uuid)) {
-        this.log.debug(`Accessory for BLID ${device.blid} already restored from cache; skipping new registration.`)
-        continue
+      for (const device of devices) {
+        try {
+          const uuid = this.api.matter.uuid.generate(device.blid)
+          discoveredUuids.add(uuid)
+
+          const vac = new RoboticVacuumAccessory(this.api, this.log, device, this.config, pollIntervalMs)
+          const accessory = vac.toAccessory()
+
+          if (this.matterAccessories.has(uuid)) {
+            // Cached accessory exists: refresh metadata (name/model/context/clusters) to avoid stale values.
+            accessoriesToUpdate.push(accessory)
+            this.log.debug(`Accessory for BLID ${device.blid} restored from cache; updating metadata.`)
+          } else {
+            accessoriesToRegister.push(accessory)
+          }
+
+          this.matterAccessories.set(vac.uuid, vac)
+        } catch (e: any) {
+          this.log.error(`Error creating accessory for device ${device.name}:`, e.message ?? e)
+          this.log.error('Stack trace:', e.stack)
+        }
       }
 
-      const vac = new RoboticVacuumAccessory(this.api, this.log, device, this.config, pollIntervalMs)
-      accessories.push(vac.toAccessory())
-      this.matterAccessories.set(vac.uuid, vac)
-    }
+      // Remove stale accessories that are cached but no longer discovered.
+      const staleAccessories: MatterAccessory[] = []
+      for (const [uuid, cached] of this.matterAccessories.entries()) {
+        if (!discoveredUuids.has(uuid)) {
+          staleAccessories.push(cached as MatterAccessory)
+          this.matterAccessories.delete(uuid)
+        }
+      }
 
-    if (accessories.length > 0) {
-      await this.api.matter.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, accessories)
-      this.log.info(`✓ Registered ${accessories.length} robot vacuum device(s) (Matter)`)
-    } else {
-      this.log.info('No Roomba devices to register.')
+      if (staleAccessories.length > 0) {
+        await this.api.matter.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, staleAccessories)
+        this.log.info(`✓ Unregistered ${staleAccessories.length} stale robot vacuum device(s) (Matter)`)
+      }
+
+      if (accessoriesToRegister.length > 0) {
+        await this.api.matter.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, accessoriesToRegister)
+        this.log.info(`✓ Registered ${accessoriesToRegister.length} robot vacuum device(s) (Matter)`)
+      }
+
+      if (accessoriesToUpdate.length > 0) {
+        await this.api.matter.updatePlatformAccessories(accessoriesToUpdate)
+        this.log.info(`✓ Updated ${accessoriesToUpdate.length} cached robot vacuum device(s) (Matter)`)
+      }
+
+      if (accessoriesToRegister.length === 0 && accessoriesToUpdate.length === 0 && staleAccessories.length === 0) {
+        this.log.info('No Roomba devices to register or update.')
+      }
+    } catch (e: any) {
+      this.log.error('Error in registerMatterAccessories:', e.message ?? e)
+      this.log.error('Stack trace:', e.stack)
+      throw e
     }
   }
 

@@ -27,7 +27,10 @@ export class RoboticVacuumAccessory extends BaseMatterAccessory {
     const serialNumber = device.serialnum || device.info?.serialNum || device.blid || device.ipaddress || 'ROOMBA-001'
     const displayName = device.name || 'Roomba'
     const manufacturer = 'iRobot'
-    const model = device.model || 'HB-MATTER-ROOMBA'
+    const actualModel = device.model || 'HB-MATTER-ROOMBA'
+    // Apple Home appears to prefer Matter productName over nodeLabel for these accessories.
+    // Use the friendly robot name here so the accessory is shown with the expected name.
+    const model = displayName
     const firmwareRevision = device.softwareVer || '0.0.0'
 
     super(api, log, {
@@ -43,6 +46,7 @@ export class RoboticVacuumAccessory extends BaseMatterAccessory {
         serialNumber,
         name: displayName,
         model,
+        actualModel,
         blid: device.blid,
         ipaddress: device.ipaddress,
         pollIntervalMs: typeof pollIntervalMs === 'number' ? pollIntervalMs : null,

@@ -19,7 +19,7 @@
                 "title": "iRobot Account Email",
                 "description": "The email address you use to log into the iRobot Home app.",
                 "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
-                "required": true,
+                "required": false,
                 "x-schema-form": {
                     "type": "email"
                 }
@@ -28,7 +28,7 @@
                 "type": "string",
                 "title": "iRobot Account Password",
                 "description": "The password you use to log into the iRobot Home app.",
-                "required": true,
+                "required": false,
                 "x-schema-form": {
                     "type": "password"
                 }
@@ -41,19 +41,21 @@
             },
             "devices": {
                 "type": "array",
+                "required": false,
+                "condition": {
+                    "functionBody": "return model.disableDiscovery === true;"
+                },
                 "items": {
                     "title": "Devices",
                     "type": "object",
                     "properties": {
                         "name": {
                             "type": "string",
-                            "title": "Robot Vacuum Name",
-                            "required": true
+                            "title": "Robot Vacuum Name"
                         },
                         "model": {
                             "type": "string",
-                            "title": "Robot Vacuum Model",
-                            "required": true
+                            "title": "Robot Vacuum Model"
                         },
                         "serialnum": {
                             "type": "string",
@@ -62,24 +64,20 @@
                         },
                         "blid": {
                             "type": "string",
-                            "title": "Robot Vacuum BLID",
-                            "required": true
+                            "title": "Robot Vacuum BLID"
                         },
                         "robotpwd": {
                             "type": "string",
-                            "title": "Robot Vacuum Password",
-                            "required": true
+                            "title": "Robot Vacuum Password"
                         },
                         "ipaddress": {
                             "type": "string",
-                            "title": "Robot Vacuum IP Address",
-                            "required": true
+                            "title": "Robot Vacuum IP Address"
                         },
                         
                         "cleanBehaviour": {
                             "type": "string",
                             "title": "When Roomba is turned on",
-                            "required": true,
                             "default": "everywhere",
                             "oneOf": [
                                 {
@@ -170,7 +168,7 @@
                                 "user_pmapv_id": {
                                     "type": "string",
                                     "title": "User Pmapv Id",
-                                    "required": true,
+                                    "required": false,
                                     "condition": {
                                         "functionBody": "return (model.devices && model.devices[arrayIndices].cleanBehaviour === 'rooms');"
                                     }
@@ -180,7 +178,6 @@
                         "stopBehaviour": {
                             "type": "string",
                             "title": "When Roomba is turned off",
-                            "required": true,
                             "default": "home",
                             "oneOf": [
                                 {
@@ -258,7 +255,10 @@
                         "type": "string",
                         "title": "rest980 Base URL",
                         "description": "Example: http://localhost:3000",
-                        "pattern": "^https?://.+$"
+                        "pattern": "^$|^https?://.+$",
+                        "condition": {
+                            "functionBody": "return model.rest980 && model.rest980.enabled === true;"
+                        }
                     }
                 }
             },
@@ -286,6 +286,7 @@
         }
     },
     "layout": [
+        "name",
         {
             "type": "fieldset",
             "title": "iRobot Account",
@@ -299,6 +300,9 @@
         {
             "type": "fieldset",
             "title": "Roomba Device Settings",
+            "condition": {
+                "functionBody": "return model.disableDiscovery === true;"
+            },
             "expandable": true,
             "expanded": false,
             "items": [
@@ -314,6 +318,7 @@
                     "expandable": true,
                     "expanded": false,
                     "orderable": false,
+                    "startEmpty": true,
                     "items": [
                         "devices[].name",
                         "devices[].model",
@@ -321,8 +326,6 @@
                         "devices[].blid",
                         "devices[].robotpwd",
                         "devices[].ipaddress",
-                        
-                        "devices[].idleWatchInterval",
                         "devices[].cleanBehaviour",
                         {
                             "key": "devices[].mission",
@@ -342,6 +345,7 @@
                             ]
                         },
                         "devices[].stopBehaviour",
+                        "devices[].accessoryCategory",
                         "devices[].idleWatchInterval"
                     ]
                 }
@@ -364,7 +368,12 @@
                     "expanded": false,
                     "items": [
                         "rest980.enabled",
-                        "rest980.baseUrl"
+                        {
+                            "key": "rest980.baseUrl",
+                            "condition": {
+                                "functionBody": "return model.rest980 && model.rest980.enabled === true;"
+                            }
+                        }
                     ]
                 },
                 {
